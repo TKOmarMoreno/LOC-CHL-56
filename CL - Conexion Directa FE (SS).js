@@ -205,34 +205,10 @@ define(
                         id: idTransaccion,
                         isDynamic: true
                     });
+
                     let docType = recordTransaction.getValue({ fieldId: 'custbody_zim_cl_tipo_doc_cod' });
                     let subsidiary = recordTransaction.getValue({ fieldId: 'subsidiary' });
                     let isOW = runtime.isFeatureInEffect("SUBSIDIARIES");
-                    let currency = {
-                        currencysymbol: recordTransaction.getValue({ fieldId: 'currencysymbol' }),
-                        currencyname: recordTransaction.getValue({ fieldId: 'currencyname' }),
-                    };
-                    let total = recordTransaction.getValue('total');
-                    total = parseFloat(total, 10).toFixed(2);
-
-                    if (!utilities.isEmpty(total) && Math.abs(total) >= 0) {
-                        const numeroEnLetras =  utilities.convertiraLetras(total,currency)
-                        log.debug(process, 'numeroEnLetras: ' + numeroEnLetras);
-                        if (!utilities.isEmpty(numeroEnLetras)) {
-                            if (total >= 0) {
-                                recordTransaction.setValue({ fieldId: 'custbody_l56_monto_escrito', value: numeroEnLetras });
-                            }
-                        } else {
-                            log.error('Error grabando transaccion.', 'ID Interno Transaccion : ' + idTransaccion + ' - Error Generando MontoEscrito');
-                        }
-                    }
-
-                    let folio = recordTransaction.getValue({ fieldId: 'custbody_zim_fe_cl_folio' });
-                    let timbre_elect = recordTransaction.getValue({ fieldId: 'custbody_3k_timbre_electronico' });
-                    
-                    if (!utilities.isEmpty(folio) || !utilities.isEmpty(timbre_elect)) {
-                        return false;
-                    }
 
                     // Busca la plantilla XML correspondiente
                     let filtros = [];
@@ -464,11 +440,11 @@ define(
                 var discountValue = txObject.getValue("discountrate");
                 discountValue = (Math.round(discountValue * 100)) / 100 * -1;
                 var discountType = '';
-                // if (discountText.charAt(discountText.length - 1) === '%') {
-                   // discountType = '%';
-                // } else {
-                   // discountType = '$';
-                // }
+                if (discountText.charAt(discountText.length - 1) === '%') {
+                    discountType = '%';
+                } else {
+                    discountType = '$';
+                }
 
                 obj_injection.discountType = discountType;
                 obj_injection.discountValue = discountValue;

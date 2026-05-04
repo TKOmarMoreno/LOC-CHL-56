@@ -123,7 +123,9 @@ define(
                                         codigoComprobanteElectronico = obj_type.custrecord_zim_cl_tipo_doc_cod;
                                     }
 
-                                    grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE,codigoComprobanteElectronico)
+                                    var tranID = recordTransaction.getValue({ fieldId: 'tranid' });
+                                    
+                                    grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE,codigoComprobanteElectronico,tranID)
                                 }
                             }
                         }
@@ -251,7 +253,7 @@ define(
          * @param {string} recType - Tipo de transacción
          * @param {int} recId - ID Transacción
          */
-        function grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE,codigoComprobanteElectronico) {
+        function grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE,codigoComprobanteElectronico,tranIDOriginal) {
 
             var proceso = 'grabarDatosFolio';
             log.debug(proceso, 'INICIO - grabarDatosFolio');
@@ -273,21 +275,59 @@ define(
                 grabarError(codigoEstadoSinError, mensajeFinal, refLog, refTransaccion, idXMLFE);
 
                 log.debug(proceso, 'INICIO - actualizar el Record Transaccion');
+                // INICIO CALCULAR TRANID
+                var tranID = tranIDOriginal;
 
-                var recordObj = record.load({
+                //alert('TranID Original : ' + tranIDOriginal + ' - Codigo : ' + codigoComprobanteElectronico);
+
+                if(!utilities.isEmpty(codigoComprobanteElectronico)){
+                    //alert('Codigo Electornico NO Vacio');
+                    switch (codigoComprobanteElectronico) {
+                        case '33':
+                            tranID = 'FV-' + informacionRespuestaAux.folio;
+                            break;
+                        case '56':
+                            tranID = 'ND-' + informacionRespuestaAux.folio;
+                            break;
+                        case '61':
+                            tranID = 'NC-' + informacionRespuestaAux.folio;
+                            break;
+                        case '39':
+                            tranID = 'BL-' + informacionRespuestaAux.folio;
+                            break;
+                        case '41':
+                            tranID = 'BLE-' + informacionRespuestaAux.folio;
+                            break;
+                        case '110':
+                            tranID = 'FVE-' + informacionRespuestaAux.folio;
+                            break;
+                        case '111':
+                            tranID = 'NDE-' + informacionRespuestaAux.folio;
+                            break;
+                        case '112':
+                            tranID = 'NCE-' + informacionRespuestaAux.folio;
+                            break;
+                    }
+                }
+                //alert('TranID : ' + tranID);
+                // FIN CALCULAR TRANID
+                // Grabo el Record Trnasaccion
+                var idTransaccionFinal = record.submitFields({
                     type: recType,
                     id: recId,
-                    isDynamic: true
+                    values: {
+                        custbody_zim_fe_cl_folio: informacionRespuestaAux.folio,
+                        custbody_zim_fe_cl_pdf: informacionRespuestaAux.pdf,
+                        tranid : tranID
+                    },
+                    options: {
+                        enablesourcing: false,
+                        ignoreMandatoryFields: true
+                    }
+
                 });
 
-                recordObj.setValue({ fieldId: "custbody_zim_fe_cl_folio", value: informacionRespuestaAux.folio });
-                recordObj.setValue({ fieldId: "custbody_zim_fe_cl_pdf", value: informacionRespuestaAux.pdf });
-
-                recordObj.save({
-                    enablesourcing: false,
-                    ignoreMandatoryFields: true
-                });
-                
+                log.debug(proceso, 'FIN - actualizar el Record Transaccion - idTransaccionFinal: ' + idTransaccionFinal);
             } else {
                 log.debug(proceso, 'Generación de Folio NULL.');
                 mensajeFinal = mensaje;
