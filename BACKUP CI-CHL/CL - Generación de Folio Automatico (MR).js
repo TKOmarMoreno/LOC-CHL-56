@@ -188,7 +188,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                                 // INICIO - Generar CAE   //currentScript, parametros, paramRecType, paramRecId, context) {
                                 objRespuestaCAE = generarCAE(currScript, parametrosEjecucion, registro.tipo, registro.id, registro.tranName, context);
                                 // FIN - Generar CAE
-
+                              
                             }
                             else {
                                 respuesta.error = true;
@@ -456,7 +456,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
             let process = 'Generar Folio'
             let codigoEstadoError = parametrosEjecucion.codigoEstadoError;
             let codigoEstadoSinError = parametrosEjecucion.codigoEstadoSinError;
-            let recType = paramRecType
+            let recType = paramRecTranName
             let recId = paramRecId;
             let currentScript = currScript
             log.debug(process, 'GENERAR CAE - Incio Proceso - INFORMACION RECIBIDA - Tipo de Transaccion : '
@@ -471,7 +471,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
 
             log.debug(process, 'INICIO -  Generar Folio - unidades disponibles: ' + currentScript.getRemainingUsage() + ' - time: ' + new Date() + ' - recId: ' + paramRecId + ' - recType: ' + paramRecType);
             log.audit(process, 'que tiene recordTransaction: ' + JSON.stringify(recordTransaction));
-
+            
             //let folio = recordTransaction.getValue({ fieldId: 'custbody_zim_fe_cl_folio' });
             let subsidiary = recordTransaction.getValue({ fieldId: 'subsidiary' });
             let isOW = runtime.isFeatureInEffect("SUBSIDIARIES");
@@ -518,6 +518,8 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                     var idXMLFE = docXML;
                     var folio = recordTransaction.getValue({ fieldId: 'custbody_zim_fe_cl_folio' });
                     var mensaje = '';
+                    var tipoComprobanteElectronico = recordTransaction.getValue({ fieldId: 'custbody_zim_cl_tipo_doc_cod' });
+                    log.debug(process, 'tipoComprobanteElectronico: ' + tipoComprobanteElectronico);
 
                     var dirArchPDF = dirArchPDF;
                     var imprimeProvFE = imprimeProvFE;
@@ -528,17 +530,12 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                             if (utilities.isEmpty(folio)) {
                                 // Se conecta al suitelet
                                 var new_url = url.resolveScript({
-                                    scriptId: 'customscript_l56_conexion_directa_fe_st',
+                                    scriptId: 'customscript_l56_conexion_directa_fe_st',                                    
                                     deploymentId: 'customdeploy_l56_conexion_directa_fe_st',
                                     returnExternalUrl: true
-
+                                    
                                 });
 
-                                var idTransaccion = recId;
-                                if (recType == 'CUSTINVC') {
-                                    recType = 'transaction'
-                                }
-                                // poner las variables
                                 var postData = {
                                     idTransaccion: recId,
                                     typeTransaccion: recType,
@@ -546,7 +543,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                                     imprimeProvFE: imprimeProvFE,
                                     empleadoParaEmail: empleadoParaEmail
                                 };
-
+                                log.debug(new_url, JSON.stringify(postData))
                                 var response = https.post({
                                     url: new_url,
                                     body: postData
@@ -588,23 +585,19 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                                         if (!utilities.isEmpty(informacionFolio) && informacionFolio > 0) {
                                             var FOLIOGENERADO = true;
                                             log.debug(process, "Remaining Usage = " + currentScript.getRemainingUsage() + ' --- time: ' + new Date());
-                                            var tipoComprobanteElectronico = recordTransaction.getValue({ fieldId: 'custbody_zim_cl_tipo_doc_cod' });
                                             var codigoComprobanteElectronico = '';
-                                            if (!utilities.isEmpty(tipoComprobanteElectronico)) {
+                                            if(!utilities.isEmpty(tipoComprobanteElectronico)){
                                                 var obj_type = search.lookupFields({
                                                     type: 'customrecord_zim_cl_tipo_documento',
                                                     id: tipoComprobanteElectronico,
                                                     columns: ['custrecord_zim_cl_tipo_doc_cod']
                                                 });
                                                 log.debug(process, "Tipo Doc = " + JSON.stringify(obj_type));
-
+                                            
                                                 codigoComprobanteElectronico = obj_type.custrecord_zim_cl_tipo_doc_cod;
                                             }
-
-                                            var tranID = recordTransaction.getValue({ fieldId: 'tranid' });
-
-                                            // grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE)
-                                            grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE, codigoComprobanteElectronico, tranID)
+                                            log.debug(process, 'codigoComprobanteElectronico: ' + codigoComprobanteElectronico);
+                                            grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE, codigoComprobanteElectronico, paramRecTranName)
                                         }
                                     }
                                 }
@@ -637,8 +630,7 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
 
         }
 
-        // function grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE) {
-        function grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE, codigoComprobanteElectronico, tranIDOriginal) {
+        function grabarDatosFolio(informacionRespuestaAux, codigoEstadoSinError, codigoEstadoError, FOLIOGENERADO, recType, recId, mensaje, refLog, refTransaccion, idXMLFE, codigoComprobanteElectronico, paramRecTranName) {
 
             var proceso = 'grabarDatosFolio';
             log.debug(proceso, 'INICIO - grabarDatosFolio');
@@ -651,60 +643,19 @@ define(['N/record', 'N/runtime', 'N/search', 'N/format', 'N/url', 'N/https', 'N/
                 grabarError(codigoEstadoSinError, mensajeFinal, refLog, refTransaccion, idXMLFE);
 
                 log.debug(proceso, 'INICIO - actualizar el Record Transaccion');
-                // Grabo el Record Trnasaccion
-                if (recType === 'CustInvc') {
-                    recType = 'invoice'
 
-                }
-                if (recType === 'CustCred') {
-                    recType = 'creditmemo'
-
-                }
-
-                var tranID = tranIDOriginal;
-                
-                if(!utilities.isEmpty(codigoComprobanteElectronico)){
-                    switch (codigoComprobanteElectronico) {
-                        case '33':
-                            tranID = 'FV-' + informacionRespuestaAux.folio;
-                            break;
-                        case '56':
-                            tranID = 'ND-' + informacionRespuestaAux.folio;
-                            break;
-                        case '61':
-                            tranID = 'NC-' + informacionRespuestaAux.folio;
-                            break;
-                        case '39':
-                            tranID = 'BL-' + informacionRespuestaAux.folio;
-                            break;
-                        case '41':
-                            tranID = 'BLE-' + informacionRespuestaAux.folio;
-                            break;
-                        case '110':
-                            tranID = 'FVE-' + informacionRespuestaAux.folio;
-                            break;
-                        case '111':
-                            tranID = 'NDE-' + informacionRespuestaAux.folio;
-                            break;
-                        case '112':
-                            tranID = 'NCE-' + informacionRespuestaAux.folio;
-                            break;
-                    }
-                }
-
-                var idTransaccionFinal = record.submitFields({
-                    type: recType,
+                var recordObj = record.load({
+                    type: paramRecTranName,
                     id: recId,
-                    values: {
-                        custbody_zim_fe_cl_folio: informacionRespuestaAux.folio,
-                        custbody_zim_fe_cl_pdf: informacionRespuestaAux.pdf,
-                        tranid : tranID
-                    },
-                    options: {
-                        enablesourcing: false,
-                        ignoreMandatoryFields: true
-                    }
+                    isDynamic: true
+                });
 
+                recordObj.setValue({ fieldId: "custbody_zim_fe_cl_folio", value: informacionRespuestaAux.folio });
+                recordObj.setValue({ fieldId: "custbody_zim_fe_cl_pdf", value: informacionRespuestaAux.pdf });
+
+                recordObj.save({
+                    enablesourcing: false,
+                    ignoreMandatoryFields: true
                 });
 
                 log.debug(proceso, 'FIN - actualizar el Record Transaccion - idTransaccionFinal: ' + idTransaccionFinal);
