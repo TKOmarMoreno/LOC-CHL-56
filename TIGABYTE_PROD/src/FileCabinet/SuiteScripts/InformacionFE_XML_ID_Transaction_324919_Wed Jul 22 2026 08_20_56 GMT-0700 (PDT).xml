@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<DTE version="1.0">
+-TXTLIB-<txt>A0;4500194902 (LICENCIAS) 4500194909 (SOPORTE);;Orden de venta #37962-2585;;;;;;;;</txt>-TXTLIB-
+<Documento ID="DTE-33--FOLIO--76486150-7">
+<Encabezado>
+<IdDoc>
+<TipoDTE>33</TipoDTE>
+<Folio>-FOLIO-</Folio>
+<FchEmis>2026-07-21</FchEmis>
+<FmaPago>2</FmaPago>
+<TermPagoGlosa>Net 30</TermPagoGlosa>
+<TermPagoDias>30</TermPagoDias>
+<FchVenc>2026-08-20</FchVenc>
+</IdDoc>
+<Emisor>
+<RUTEmisor>76486150-7</RUTEmisor>
+<RznSoc>SUPER SOFTWARE SPA</RznSoc>
+<GiroEmis>ACTIVIDADES DE PROGRAMACIÓN INFORMÁTICA</GiroEmis>
+<Acteco>620100</Acteco>
+<DirOrigen>DEL INCA 4446 OFICINA 901</DirOrigen>
+<CmnaOrigen>Las Condes</CmnaOrigen>
+<CiudadOrigen>Santiago</CiudadOrigen>
+<CdgVendedor>Daniel Rodriguez Aranguez</CdgVendedor>
+</Emisor>
+<Receptor>
+<RUTRecep>81094100-6</RUTRecep>
+<RznSocRecep>COOP AGRICOLA Y LECHERA DE LA UNION LTDA</RznSocRecep>
+<GiroRecep>ELABORACION DE PRODUCTOS LACTEOS</GiroRecep>
+<Contacto></Contacto>
+<DirRecep>ESMERALDA 641</DirRecep>
+<CmnaRecep>La Unión</CmnaRecep>
+<CiudadRecep>Ranco</CiudadRecep>
+</Receptor>
+<Totales>
+<MntNeto>3732000</MntNeto>
+<MntExe>0</MntExe>
+<TasaIVA>19</TasaIVA>
+<IVA>709080</IVA>
+<MntTotal>4441080</MntTotal>
+<!--<MntTotal>4441080</MntTotal> -->
+</Totales>
+</Encabezado>
+<Detalle>
+<NroLinDet>1</NroLinDet>
+<CdgItem>
+<TpoCodigo>Interna</TpoCodigo>
+<VlrCodigo>481-N3 Professional Support cl</VlrCodigo>
+</CdgItem>
+<NmbItem>481-N3 Professional Support cl</NmbItem>
+<DscItem>37962 - N3 Professional Support - dominio colun.cl - USD 4.000 - Cuota 25/60</DscItem>
+<QtyItem>1</QtyItem>
+<UnmdItem></UnmdItem>
+<PrcItem>3732000</PrcItem>
+<MontoItem>3732000</MontoItem>
+</Detalle>
+<Referencia>
+<NroLinRef>1</NroLinRef>
+<TpoDocRef>801</TpoDocRef>
+<FolioRef>4500194909</FolioRef>
+<FchRef>2026-07-21</FchRef>
+</Referencia>
+</Documento>
+</DTE>
+
