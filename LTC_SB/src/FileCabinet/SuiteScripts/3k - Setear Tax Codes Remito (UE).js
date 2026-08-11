@@ -1,16 +1,51 @@
 /**
  *@NApiVersion 2.1
  *@NScriptType UserEventScript
- 
+
  */
 define(
     [
-        'N/record', 'N/error', 'N/search', 'N/runtime'
+        // 'N/record', 'N/error', 'N/search', 'N/runtime'
+        'N/record', 'N/search', 'N/runtime'
     ],
-    (record, error, search, runtime) => {
+    // (record, error, search, runtime) => {
+    (record, search, runtime) => {
 
         let beforeSubmit = (scriptContext) => {
             log.debug("Before Submit", "Log de verificacion");
+
+            try {
+                if (scriptContext.type != scriptContext.UserEventType.DELETE) {
+                    let recordFulfillment = scriptContext.newRecord;
+
+                    if (recordFulfillment.type == 'itemfulfillment') {
+
+                        let createdfrom = recordFulfillment.getValue('createdfrom');
+                        let metodoEnvio = recordFulfillment.getValue('shipmethod');
+                        let idDireccionEnvio = recordFulfillment.getValue('shipaddresslist');
+
+                        if (!isEmpty(metodoEnvio) && !isEmpty(idDireccionEnvio) && !isEmpty(createdfrom)) {
+
+                            let resultCreadoDesde = getDataCreatedFrom(createdfrom, recordFulfillment.type, metodoEnvio, idDireccionEnvio);
+
+                            if (!resultCreadoDesde.error) {
+                                if (!isEmpty(resultCreadoDesde.taxRate)) {
+                                    recordFulfillment.setValue('custbody_3k_codigo_impu_articulo_envio', parseInt(resultCreadoDesde.taxRate, 10));
+                                } else {
+                                    recordFulfillment.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                                }
+                            } else {
+                                recordFulfillment.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                                log.error('beforeSubmit', resultCreadoDesde.mensaje);
+                            }
+                        } else {
+                            recordFulfillment.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                        }
+                    }
+                }
+            } catch (error) {
+                log.error('beforeSubmit', 'Ocurrió un error mientras se setea el código de impuesto de envío en el remito, detalles: ' + error.message);
+            }
         }
         /**
          * Function definition to be triggered before record is loaded.
@@ -28,48 +63,125 @@ define(
 
             try {
 
+                // if (scriptContext.type != scriptContext.UserEventType.DELETE) {
+                //     log.debug(proceso, 'INICIO - function scriptContext.type: ' + scriptContext.type);
+                //     let recType = scriptContext.newRecord.type;
+                //     let recId = scriptContext.newRecord.id;
+                //     let objRecord = record.load({
+                //         type: recType,
+                //         id: recId
+                //     })
+                //     let cantidadItems = objRecord.getLineCount('item');
+                //     let currentScript = runtime.getCurrentScript();
+                //
+                //     if (objRecord.type == 'invoice' || objRecord.type == 'salesorder' || objRecord.type == 'transferorder' || objRecord.type == 'vendorreturnauthorization' || objRecord.type == 'creditmemo' || objRecord.type == 'cashsale') {
+                //
+                //         log.debug(proceso, 'Ingreso a condicion de invoice / salesorder / transferorder / vendorreturnauthorization / cashsale / creditmemo');
+                //         // crear ss de tax code y luego filtrar con filter y a cada linea asignar el rate correspondiente
+                //         let taxDetailsQuantity = objRecord.getLineCount('taxdetails');
+                //         log.debug(proceso, `Line 51 - taxDetailsQuantity: ${JSON.stringify(taxDetailsQuantity)}`);
+                //         let arrayTaxDetails = [];
+                //
+                //         // Obtencion de taxCodes por taxDetails
+                //         for (let i = 0; i < taxDetailsQuantity; i++) {
+                //             let infoTaxDetail = {};
+                //             infoTaxDetail.taxDetailReference = objRecord.getSublistValue('taxdetails', 'taxdetailsreference', i);
+                //             infoTaxDetail.taxCode = objRecord.getSublistValue('taxdetails', 'taxcode', i);
+                //             infoTaxDetail.taxRate = objRecord.getSublistValue('taxdetails', 'taxrate', i);
+                //             arrayTaxDetails.push(infoTaxDetail);
+                //             log.debug(proceso, `line nro: ${i} / infoTaxDetail: ${JSON.stringify(infoTaxDetail)}`);
+                //         }
+                //
+                //         // Obtencion de taxCodes por items
+                //         if (arrayTaxDetails.length > 0) {
+                //             for (let i = 0; i < cantidadItems; i++) {
+                //                 let taxDetailReferenceItem = objRecord.getSublistValue('item', 'taxdetailsreference', i);
+                //
+                //                 let taxCodeItemResult = arrayTaxDetails.filter(obj => {
+                //                     return (obj.taxDetailReference == taxDetailReferenceItem)
+                //                 });
+                //
+                //                 log.debug(proceso, `line nro: ${i} / taxCodeItemResult: ${JSON.stringify(taxCodeItemResult)} `);
+                //
+                //                 if (taxCodeItemResult.length > 0) {
+                //                     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult[0].taxRate);
+                //                 } else {
+                //                     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
+                //                 }
+                //             }
+                //         } else {
+                //             for (let i = 0; i < cantidadItems; i++) {
+                //                 objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
+                //             }
+                //         }
+                //     } else if (objRecord.type == 'itemfulfillment') {
+                //
+                //         log.debug(proceso, 'Ingreso a condicion de itemfulfillment');
+                //         let createdfrom = objRecord.getValue('createdfrom');
+                //         let metodoEnvio = objRecord.getValue('shipmethod');
+                //         let idDireccionEnvio = objRecord.getValue('shipaddresslist');
+                //
+                //         log.debug(proceso, `createdfrom: ${createdfrom} - metodoEnvio: ${metodoEnvio} - idDireccionEnvio: ${idDireccionEnvio}`);
+                //
+                //         if (!isEmpty(metodoEnvio) && !isEmpty(idDireccionEnvio) && !isEmpty(createdfrom)) {
+                //
+                //             let resultCreadoDesde = getDataCreatedFrom(createdfrom, objRecord.type, metodoEnvio, idDireccionEnvio);
+                //             log.debug(proceso, `resultCreadoDesde: ${JSON.stringify(resultCreadoDesde)}`);
+                //
+                //             if (!resultCreadoDesde.error) {
+                //                 if (!isEmpty(resultCreadoDesde.taxRate)) {
+                //                     objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', parseInt(resultCreadoDesde.taxRate, 10));
+                //                 } else {
+                //                     objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                //                     log.debug(proceso, 'No existe taxRate a setear en el remito');
+                //                 }
+                //             } else {
+                //                 objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                //                 log.error(proceso, resultCreadoDesde.mensaje);
+                //             }
+                //         } else {
+                //             objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
+                //             log.debug(proceso, 'Ingreso a condicion de itemfulfillment pero no existe metodo de envio, o direccion de envio');
+                //         }
+                //     }
+                //
+                //     objRecord.save();
+                // }
                 if (scriptContext.type != scriptContext.UserEventType.DELETE) {
                     log.debug(proceso, 'INICIO - function scriptContext.type: ' + scriptContext.type);
                     let recType = scriptContext.newRecord.type;
                     let recId = scriptContext.newRecord.id;
-                    let objRecord = record.load({
-                        type: recType,
-                        id: recId
-                    })
-                    let cantidadItems = objRecord.getLineCount('item');
-                    let currentScript = runtime.getCurrentScript();
 
-                    if (objRecord.type == 'invoice' || objRecord.type == 'salesorder' || objRecord.type == 'transferorder' || objRecord.type == 'vendorreturnauthorization' || objRecord.type == 'creditmemo' || objRecord.type == 'cashsale') {
+                    if (recType == 'invoice' || recType == 'salesorder' || recType == 'transferorder' || recType == 'vendorreturnauthorization' || recType == 'creditmemo' || recType == 'cashsale') {
 
-                        log.debug(proceso, 'Ingreso a condicion de invoice / salesorder / transferorder / vendorreturnauthorization / cashsale / creditmemo');
-                        // crear ss de tax code y luego filtrar con filter y a cada linea asignar el rate correspondiente
+                        let objRecord = record.load({
+                            type: recType,
+                            id: recId
+                        })
+                        let cantidadItems = objRecord.getLineCount('item');
+                        let currentScript = runtime.getCurrentScript();
+
                         let taxDetailsQuantity = objRecord.getLineCount('taxdetails');
-                        log.debug(proceso, `Line 51 - taxDetailsQuantity: ${JSON.stringify(taxDetailsQuantity)}`);
                         let arrayTaxDetails = [];
+                        let mapTaxDetails = {};
 
-                        // Obtencion de taxCodes por taxDetails
                         for (let i = 0; i < taxDetailsQuantity; i++) {
                             let infoTaxDetail = {};
                             infoTaxDetail.taxDetailReference = objRecord.getSublistValue('taxdetails', 'taxdetailsreference', i);
                             infoTaxDetail.taxCode = objRecord.getSublistValue('taxdetails', 'taxcode', i);
                             infoTaxDetail.taxRate = objRecord.getSublistValue('taxdetails', 'taxrate', i);
                             arrayTaxDetails.push(infoTaxDetail);
-                            log.debug(proceso, `line nro: ${i} / infoTaxDetail: ${JSON.stringify(infoTaxDetail)}`);
+                            mapTaxDetails[infoTaxDetail.taxDetailReference] = infoTaxDetail;
                         }
 
-                        // Obtencion de taxCodes por items
                         if (arrayTaxDetails.length > 0) {
                             for (let i = 0; i < cantidadItems; i++) {
                                 let taxDetailReferenceItem = objRecord.getSublistValue('item', 'taxdetailsreference', i);
 
-                                let taxCodeItemResult = arrayTaxDetails.filter(obj => {
-                                    return (obj.taxDetailReference == taxDetailReferenceItem)
-                                });
+                                let taxCodeItemResult = mapTaxDetails[taxDetailReferenceItem];
 
-                                log.debug(proceso, `line nro: ${i} / taxCodeItemResult: ${JSON.stringify(taxCodeItemResult)} `);
-
-                                if (taxCodeItemResult.length > 0) {
-                                    objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult[0].taxRate);
+                                if (taxCodeItemResult) {
+                                    objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult.taxRate);
                                 } else {
                                     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
                                 }
@@ -79,38 +191,9 @@ define(
                                 objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
                             }
                         }
-                    } else if (objRecord.type == 'itemfulfillment') {
 
-                        log.debug(proceso, 'Ingreso a condicion de itemfulfillment');
-                        let createdfrom = objRecord.getValue('createdfrom');
-                        let metodoEnvio = objRecord.getValue('shipmethod');
-                        let idDireccionEnvio = objRecord.getValue('shipaddresslist');
-
-                        log.debug(proceso, `createdfrom: ${createdfrom} - metodoEnvio: ${metodoEnvio} - idDireccionEnvio: ${idDireccionEnvio}`);
-
-                        if (!isEmpty(metodoEnvio) && !isEmpty(idDireccionEnvio) && !isEmpty(createdfrom)) {
-
-                            let resultCreadoDesde = getDataCreatedFrom(createdfrom, objRecord.type, metodoEnvio, idDireccionEnvio);
-                            log.debug(proceso, `resultCreadoDesde: ${JSON.stringify(resultCreadoDesde)}`);
-
-                            if (!resultCreadoDesde.error) {
-                                if (!isEmpty(resultCreadoDesde.taxRate)) {
-                                    objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', parseInt(resultCreadoDesde.taxRate, 10));
-                                } else {
-                                    objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
-                                    log.debug(proceso, 'No existe taxRate a setear en el remito');
-                                }
-                            } else {
-                                objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
-                                log.error(proceso, resultCreadoDesde.mensaje);
-                            }
-                        } else {
-                            objRecord.setValue('custbody_3k_codigo_impu_articulo_envio', 0);
-                            log.debug(proceso, 'Ingreso a condicion de itemfulfillment pero no existe metodo de envio, o direccion de envio');
-                        }
+                        objRecord.save();
                     }
-
-                    objRecord.save();
                 }
 
                 log.debug(proceso, 'FIN - function scriptContext.type: ' + scriptContext.type);
@@ -159,57 +242,57 @@ define(
             return response;
         }
 
-        let getResultsSalesTaxItem = () => {
-
-            let proceso = 'getResultsSalesTaxItem';
-            let response = { error: false, mensaje: '', infoResultados: [] };
-
-            try {
-                let objResultSet = search.load({
-                    id: 'customsearch_3k_scr_codigos_imp_dipisa'
-                });
-
-                /* if (!isEmpty(subsidiaria)) {
-                    let filtroSubsidiaria = search.createFilter({
-                        name: 'subsidiary',
-                        operator: search.Operator.IS,
-                        values: subsidiaria
-                    });
-                    objResultSet.filters.push(filtroSubsidiaria);
-                } */
-
-                var resultSet = objResultSet.run();
-
-                var searchResult = resultSet.getRange({
-                    start: 0,
-                    end: 1000
-                });
-
-                if (!isEmpty(searchResult) && searchResult.length > 0) {
-                    for (let i = 0; i < searchResult.length; i++) {
-                        let info = {};
-
-                        info.internalid = searchResult[i].getValue({
-                            name: resultSet.columns[0]
-                        }); //Get internalid
-
-                        info.rate = parseFloat(searchResult[i].getValue({
-                            name: resultSet.columns[1]
-                        }), 10); //Get RATE
-
-                        response.infoResultados.push(info);
-                    }
-                } else {
-                    log.error(proceso, 'No se encontró ningún resultado de código de impuesto');
-                }
-            } catch (error) {
-                response.error = true;
-                response.mensaje = 'Error NetSuite - Excepción mientras se obtenían los códigos de impuestos - Detalles: ' + error.message;
-                log.error(proceso, response.mensaje);
-            }
-
-            return response;
-        }
+        // let getResultsSalesTaxItem = () => {
+        //
+        //     let proceso = 'getResultsSalesTaxItem';
+        //     let response = { error: false, mensaje: '', infoResultados: [] };
+        //
+        //     try {
+        //         let objResultSet = search.load({
+        //             id: 'customsearch_3k_scr_codigos_imp_dipisa'
+        //         });
+        //
+        //         /* if (!isEmpty(subsidiaria)) {
+        //             let filtroSubsidiaria = search.createFilter({
+        //                 name: 'subsidiary',
+        //                 operator: search.Operator.IS,
+        //                 values: subsidiaria
+        //             });
+        //             objResultSet.filters.push(filtroSubsidiaria);
+        //         } */
+        //
+        //         var resultSet = objResultSet.run();
+        //
+        //         var searchResult = resultSet.getRange({
+        //             start: 0,
+        //             end: 1000
+        //         });
+        //
+        //         if (!isEmpty(searchResult) && searchResult.length > 0) {
+        //             for (let i = 0; i < searchResult.length; i++) {
+        //                 let info = {};
+        //
+        //                 info.internalid = searchResult[i].getValue({
+        //                     name: resultSet.columns[0]
+        //                 }); //Get internalid
+        //
+        //                 info.rate = parseFloat(searchResult[i].getValue({
+        //                     name: resultSet.columns[1]
+        //                 }), 10); //Get RATE
+        //
+        //                 response.infoResultados.push(info);
+        //             }
+        //         } else {
+        //             log.error(proceso, 'No se encontró ningún resultado de código de impuesto');
+        //         }
+        //     } catch (error) {
+        //         response.error = true;
+        //         response.mensaje = 'Error NetSuite - Excepción mientras se obtenían los códigos de impuestos - Detalles: ' + error.message;
+        //         log.error(proceso, response.mensaje);
+        //     }
+        //
+        //     return response;
+        // }
 
         let isEmpty = (value) => {
 
