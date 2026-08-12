@@ -110,7 +110,7 @@ define(
                         }
                     }
 
-                    objRecord.save();
+                    objRecord.save({ enableSourcing: false, ignoreMandatoryFields: true, disableTriggers: true });
                 }
 
                 log.debug(proceso, 'FIN - function scriptContext.type: ' + scriptContext.type);
