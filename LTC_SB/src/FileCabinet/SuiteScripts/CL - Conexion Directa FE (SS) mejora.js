@@ -6,9 +6,29 @@
  */
 define(
     [
-        'N/record', 'N/error', 'N/search', 'L56/utilidades', 'N/runtime', 'N/format', 'N/config', 'N/file', 'N/render', 'N/url', 'N/https', 'N/transaction', 'N/translation'
+        // 'N/record', 'N/error', 'N/search', 'L56/utilidades', 'N/runtime', 'N/format', 'N/config', 'N/file', 'N/render', 'N/url', 'N/https', 'N/transaction', 'N/translation'
+        'N/record', 'N/search', 'L56/utilidades', 'N/runtime', 'N/format', 'N/config', 'N/file', 'N/render', 'N/translation'
     ],
-    function (record, error, search, utilities, runtime, format, config, file, render, url, https, transaction, translation) {
+    // function (record, error, search, utilities, runtime, format, config, file, render, url, https, transaction, translation) {
+    function (record, search, utilities, runtime, format, config, file, render, translation) {
+
+        function getAllResults(searchObj, maxPages) {
+            var results = [];
+            var searchResultSet = searchObj.run();
+            var index = 0;
+            var pageSize = 1000;
+            var pageCount = 0;
+            var maxPageCount = maxPages || 1;
+            var hasMore = true;
+            while (hasMore && pageCount < maxPageCount) {
+                var page = searchResultSet.getRange({ start: index, end: index + pageSize });
+                results = results.concat(page);
+                hasMore = page.length >= pageSize;
+                index += pageSize;
+                pageCount++;
+            }
+            return results;
+        }
 
         /**
          * Function definition to be triggered before record is loaded.
@@ -284,8 +304,14 @@ define(
                         let idFileXML = fileObj.save();
 
                         if (!utilities.isEmpty(idFileXML)) {
-                            recordTransaction.setValue({ fieldId: 'custbody_l56_cl_doc_electro', value: idFileXML });
-                            recordTransaction.save({ enableSourcing: false, ignoreMandatoryFields: true, disableTriggers: true });
+                            // recordTransaction.setValue({ fieldId: 'custbody_l56_cl_doc_electro', value: idFileXML });
+                            // recordTransaction.save({ enableSourcing: false, ignoreMandatoryFields: true });
+                            record.submitFields({
+                                type: recType,
+                                id: idTransaccion,
+                                values: { custbody_l56_cl_doc_electro: idFileXML },
+                                options: { enableSourcing: false, ignoreMandatoryFields: true }
+                            });
                         }
                     } else {
                         mensaje = 'No existe configuración para el tipo de transacción de Chile seteada en la transacción.';
@@ -334,7 +360,7 @@ define(
             if (isOneWorld) {
                 var recSubsi = search.lookupFields({
                     type: search.Type.SUBSIDIARY,
-                    id: txObject.getValue('subsidiary'),
+                    id: txObject.getValue({ fieldId: 'subsidiary' }),
                     columns: ['address.custrecord_zim_region', 'address.custrecord_zim_comuna', 'address.custrecord_zim_provincia', 'address.address',
                         "custrecord_l56_num_ide_iva", "legalname", "custrecord_zim_giro", "custrecord_zim_acteco"]
                 });
@@ -395,18 +421,21 @@ define(
             var obj_injection = {};
             obj_injection.supplier = obj_supplier;
 
-            let recType = txObject.getValue('type');
+            // let recType = txObject.getValue('type');
+            let recType = txObject.getValue({ fieldId: 'type' });
             obj_injection.reference = recType;
 
             if (recType.toLowerCase() == 'itemship') {
 
                 log.debug('inject', 'Inicio - itemship');
-                var orderType = txObject.getValue('ordertype');
+                // var orderType = txObject.getValue('ordertype');
+                var orderType = txObject.getValue({ fieldId: 'ordertype' });
                 var obj_ref = {};
                 if (orderType.toLowerCase() == 'salesord') {
                     var recSO = search.lookupFields({
                         type: 'salesorder',
-                        id: txObject.getValue('createdfrom'),
+                        // id: txObject.getValue('createdfrom'),
+                        id: txObject.getValue({ fieldId: 'createdfrom' }),
                         columns: ['billingaddress.custrecord_zim_region', 'billingaddress.custrecord_zim_comuna', 'billingaddress.address1']
                     });
                     let billAddressSO = recSO["billingaddress.address1"];
@@ -416,9 +445,13 @@ define(
                     obj_ref.region = billRegionSO;
                     obj_ref.comuna = billComunaSO;
                 } else if (orderType.toLowerCase() == 'trnfrord') {
-                    let shipAddressTO = txObject.getValue('shippingaddress.address1');
-                    let shipRegionTO = txObject.getValue('shippingaddress.custrecord_zim_region');
-                    let shipComunaTO = txObject.getValue('shippingaddress.custrecord_zim_comuna');
+                    // let shipAddressTO = txObject.getValue('shippingaddress.address1');
+                    // let shipRegionTO = txObject.getValue('shippingaddress.custrecord_zim_region');
+                    // let shipComunaTO = txObject.getValue('shippingaddress.custrecord_zim_comuna');
+                    let addressSubrecordTO = txObject.getSubrecord({ fieldId: 'shippingaddress' });
+                    let shipAddressTO = addressSubrecordTO.getText({ fieldId: 'addr1' });
+                    let shipRegionTO = addressSubrecordTO.getText({ fieldId: 'custrecord_zim_region' });
+                    let shipComunaTO = addressSubrecordTO.getText({ fieldId: 'custrecord_zim_comuna' });
                     obj_ref.address = shipAddressTO;
                     obj_ref.region = shipRegionTO;
                     obj_ref.comuna = shipComunaTO;
@@ -431,7 +464,8 @@ define(
                 log.debug('inject', 'Inicio - verificacion de descuentos');
 
                 var discountText = txObject.getText("discountrate");
-                var discountValue = txObject.getValue("discountrate");
+                // var discountValue = txObject.getValue("discountrate");
+                var discountValue = txObject.getValue({ fieldId: "discountrate" });
                 discountValue = (Math.round(discountValue * 100)) / 100 * -1;
                 var discountType = '';
                 if (discountText.charAt(discountText.length - 1) === '%') {
@@ -454,11 +488,13 @@ define(
                 ]
             });
 
-            resulttransaRelacio = transaRelacio.run().getRange(0, 50);
+            // resulttransaRelacio = transaRelacio.run().getRange(0, 50);
+            let resulttransaRelacio = getAllResults(transaRelacio);
             if (resulttransaRelacio != null && resulttransaRelacio.length != 0) {
                 var customObjAu = new Array();
                 for (var i = 0; i < resulttransaRelacio.length; i++) {
-                    row = resulttransaRelacio[i].columns;
+                    // row = resulttransaRelacio[i].columns;
+                    let row = resulttransaRelacio[i].columns;
                     var fecha = resulttransaRelacio[i].getValue(row[0]);
                     customObjAu[i] = {
                         "fecha": fecha,

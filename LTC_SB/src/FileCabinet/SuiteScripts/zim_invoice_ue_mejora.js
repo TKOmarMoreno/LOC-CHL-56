@@ -27,17 +27,34 @@ define(['N/search', 'N/record', 'N/runtime'],
     // function(search, record, error,runtime) {
     function(search, record, runtime) {
 
-        var getAllResults = function (searchObj) {
+        // var getAllResults = function (searchObj) {
+        //     var results = [];
+        //     var searchResultSet = searchObj.run();
+        //     var index = 0;
+        //     var pageSize = 1000;
+        //     var hasMore = true;
+        //     while (hasMore) {
+        //         var page = searchResultSet.getRange({ start: index, end: index + pageSize });
+        //         results = results.concat(page);
+        //         hasMore = page.length >= pageSize;
+        //         index += pageSize;
+        //     }
+        //     return results;
+        // };
+        var getAllResults = function (searchObj, maxPages) {
             var results = [];
             var searchResultSet = searchObj.run();
             var index = 0;
             var pageSize = 1000;
+            var pageCount = 0;
+            var maxPageCount = maxPages || 1;
             var hasMore = true;
-            while (hasMore) {
+            while (hasMore && pageCount < maxPageCount) {
                 var page = searchResultSet.getRange({ start: index, end: index + pageSize });
                 results = results.concat(page);
                 hasMore = page.length >= pageSize;
                 index += pageSize;
+                pageCount++;
             }
             return results;
         };

@@ -5,9 +5,11 @@
  */
 define(
     [
-        'N/record', 'N/error', 'N/search', 'N/runtime'
+        // 'N/record', 'N/error', 'N/search', 'N/runtime'
+        'N/record', 'N/search', 'N/runtime'
     ],
-    (record, error, search, runtime) => {
+    // (record, error, search, runtime) => {
+    (record, search, runtime) => {
 
         let beforeSubmit = (scriptContext) => {
             log.debug("Before Submit", "Log de verificacion");
@@ -44,8 +46,9 @@ define(
                         log.debug(proceso, 'Ingreso a condicion de invoice / salesorder / transferorder / vendorreturnauthorization / cashsale / creditmemo');
                         // crear ss de tax code y luego filtrar con filter y a cada linea asignar el rate correspondiente
                         let taxDetailsQuantity = objRecord.getLineCount('taxdetails');
-                        log.debug(proceso, `Line 51 - taxDetailsQuantity: ${JSON.stringify(taxDetailsQuantity)}`);
+                        // log.debug(proceso, `Line 51 - taxDetailsQuantity: ${JSON.stringify(taxDetailsQuantity)}`);
                         let arrayTaxDetails = [];
+                        let mapTaxDetails = {};
 
                         // Obtencion de taxCodes por taxDetails
                         for (let i = 0; i < taxDetailsQuantity; i++) {
@@ -54,7 +57,8 @@ define(
                             infoTaxDetail.taxCode = objRecord.getSublistValue('taxdetails', 'taxcode', i);
                             infoTaxDetail.taxRate = objRecord.getSublistValue('taxdetails', 'taxrate', i);
                             arrayTaxDetails.push(infoTaxDetail);
-                            log.debug(proceso, `line nro: ${i} / infoTaxDetail: ${JSON.stringify(infoTaxDetail)}`);
+                            mapTaxDetails[infoTaxDetail.taxDetailReference] = infoTaxDetail;
+                            // log.debug(proceso, `line nro: ${i} / infoTaxDetail: ${JSON.stringify(infoTaxDetail)}`);
                         }
 
                         // Obtencion de taxCodes por items
@@ -62,14 +66,20 @@ define(
                             for (let i = 0; i < cantidadItems; i++) {
                                 let taxDetailReferenceItem = objRecord.getSublistValue('item', 'taxdetailsreference', i);
 
-                                let taxCodeItemResult = arrayTaxDetails.filter(obj => {
-                                    return (obj.taxDetailReference == taxDetailReferenceItem)
-                                });
+                                // let taxCodeItemResult = arrayTaxDetails.filter(obj => {
+                                //     return (obj.taxDetailReference == taxDetailReferenceItem)
+                                // });
+                                let taxCodeItemResult = mapTaxDetails[taxDetailReferenceItem];
 
-                                log.debug(proceso, `line nro: ${i} / taxCodeItemResult: ${JSON.stringify(taxCodeItemResult)} `);
+                                // log.debug(proceso, `line nro: ${i} / taxCodeItemResult: ${JSON.stringify(taxCodeItemResult)} `);
 
-                                if (taxCodeItemResult.length > 0) {
-                                    objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult[0].taxRate);
+                                // if (taxCodeItemResult.length > 0) {
+                                //     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult[0].taxRate);
+                                // } else {
+                                //     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
+                                // }
+                                if (taxCodeItemResult) {
+                                    objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, taxCodeItemResult.taxRate);
                                 } else {
                                     objRecord.setSublistValue('item', 'custcol_3k_rate_item_tax_code', i, 0);
                                 }
@@ -110,7 +120,8 @@ define(
                         }
                     }
 
-                    objRecord.save({ enableSourcing: false, ignoreMandatoryFields: true, disableTriggers: true });
+                    // objRecord.save({ enableSourcing: false, ignoreMandatoryFields: true, disableTriggers: true });
+                    objRecord.save({ enableSourcing: false, ignoreMandatoryFields: true });
                 }
 
                 log.debug(proceso, 'FIN - function scriptContext.type: ' + scriptContext.type);
@@ -159,57 +170,57 @@ define(
             return response;
         }
 
-        let getResultsSalesTaxItem = () => {
-
-            let proceso = 'getResultsSalesTaxItem';
-            let response = { error: false, mensaje: '', infoResultados: [] };
-
-            try {
-                let objResultSet = search.load({
-                    id: 'customsearch_3k_scr_codigos_imp_dipisa'
-                });
-
-                /* if (!isEmpty(subsidiaria)) {
-                    let filtroSubsidiaria = search.createFilter({
-                        name: 'subsidiary',
-                        operator: search.Operator.IS,
-                        values: subsidiaria
-                    });
-                    objResultSet.filters.push(filtroSubsidiaria);
-                } */
-
-                var resultSet = objResultSet.run();
-
-                var searchResult = resultSet.getRange({
-                    start: 0,
-                    end: 1000
-                });
-
-                if (!isEmpty(searchResult) && searchResult.length > 0) {
-                    for (let i = 0; i < searchResult.length; i++) {
-                        let info = {};
-
-                        info.internalid = searchResult[i].getValue({
-                            name: resultSet.columns[0]
-                        }); //Get internalid
-
-                        info.rate = parseFloat(searchResult[i].getValue({
-                            name: resultSet.columns[1]
-                        }), 10); //Get RATE
-
-                        response.infoResultados.push(info);
-                    }
-                } else {
-                    log.error(proceso, 'No se encontró ningún resultado de código de impuesto');
-                }
-            } catch (error) {
-                response.error = true;
-                response.mensaje = 'Error NetSuite - Excepción mientras se obtenían los códigos de impuestos - Detalles: ' + error.message;
-                log.error(proceso, response.mensaje);
-            }
-
-            return response;
-        }
+        // let getResultsSalesTaxItem = () => {
+        //
+        //     let proceso = 'getResultsSalesTaxItem';
+        //     let response = { error: false, mensaje: '', infoResultados: [] };
+        //
+        //     try {
+        //         let objResultSet = search.load({
+        //             id: 'customsearch_3k_scr_codigos_imp_dipisa'
+        //         });
+        //
+        //         /* if (!isEmpty(subsidiaria)) {
+        //             let filtroSubsidiaria = search.createFilter({
+        //                 name: 'subsidiary',
+        //                 operator: search.Operator.IS,
+        //                 values: subsidiaria
+        //             });
+        //             objResultSet.filters.push(filtroSubsidiaria);
+        //         } */
+        //
+        //         var resultSet = objResultSet.run();
+        //
+        //         var searchResult = resultSet.getRange({
+        //             start: 0,
+        //             end: 1000
+        //         });
+        //
+        //         if (!isEmpty(searchResult) && searchResult.length > 0) {
+        //             for (let i = 0; i < searchResult.length; i++) {
+        //                 let info = {};
+        //
+        //                 info.internalid = searchResult[i].getValue({
+        //                     name: resultSet.columns[0]
+        //                 }); //Get internalid
+        //
+        //                 info.rate = parseFloat(searchResult[i].getValue({
+        //                     name: resultSet.columns[1]
+        //                 }), 10); //Get RATE
+        //
+        //                 response.infoResultados.push(info);
+        //             }
+        //         } else {
+        //             log.error(proceso, 'No se encontró ningún resultado de código de impuesto');
+        //         }
+        //     } catch (error) {
+        //         response.error = true;
+        //         response.mensaje = 'Error NetSuite - Excepción mientras se obtenían los códigos de impuestos - Detalles: ' + error.message;
+        //         log.error(proceso, response.mensaje);
+        //     }
+        //
+        //     return response;
+        // }
 
         let isEmpty = (value) => {
 
